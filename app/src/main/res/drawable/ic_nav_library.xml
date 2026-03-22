@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Photo grid icon -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="?attr/colorOnSurface"
+        android:pathData="M3,3h7v7H3V3zM3,13h7v8H3V13zM13,3h8v8H13V3zM13,14h3v3h-3V14zM17,18h4v3H17V18zM17,14h4v3H17V14zM13,18h3v3H13V18z" />
+</vector>

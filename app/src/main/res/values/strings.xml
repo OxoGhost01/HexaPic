@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">HexaPic</string>
+    <string name="tab_library">Library</string>
+    <string name="tab_for_you">For You</string>
+    <string name="tab_albums">Albums</string>
+    <string name="tab_search">Search</string>
+    <string name="permission_denied_title">No Access to Photos</string>
+    <string name="permission_denied_message">HexaPic needs access to your photos and videos. Grant access in Settings.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="photos_count">%1$d Photos, %2$d Videos</string>
+    <string name="loading">Loading…</string>
+    <string name="for_you_placeholder">For You — coming soon</string>
+    <string name="albums_placeholder">Albums — coming soon</string>
+    <string name="search_placeholder">Search — coming soon</string>
+    <string name="update_new_version">New version %1$s</string>
+    <string name="update_not_now">NOT NOW</string>
+    <string name="update_button">UPDATE</string>
+    <string name="update_downloading">Downloading…</string>
+</resources>
