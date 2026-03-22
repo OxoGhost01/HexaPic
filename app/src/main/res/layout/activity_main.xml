@@ -7,14 +7,6 @@
     android:layout_height="match_parent"
     android:background="@color/background_dark">
 
-    <!-- Status bar background -->
-    <View
-        android:id="@+id/statusBarBg"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_gravity="top"
-        android:background="@color/black" />
-
     <FrameLayout
         android:id="@+id/fragment_container"
         android:layout_width="match_parent"
@@ -83,5 +75,13 @@
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
+
+    <!-- Status bar background — must be last so it draws on top of fragment content -->
+    <View
+        android:id="@+id/statusBarBg"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_gravity="top"
+        android:background="@color/black" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

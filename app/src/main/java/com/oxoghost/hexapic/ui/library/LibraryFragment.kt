@@ -21,6 +21,7 @@ import androidx.core.app.ActivityOptionsCompat
 import coil.Coil
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import coil.size.Precision
 import com.oxoghost.hexapic.databinding.FragmentLibraryBinding
 import com.oxoghost.hexapic.ui.detail.DetailActivity
 import com.oxoghost.hexapic.ui.detail.DetailDataStore
@@ -74,6 +75,8 @@ class LibraryFragment : Fragment() {
 
     private fun setupGrid() {
         val spanCount = spanCountForOrientation()
+        val cellPx = resources.displayMetrics.widthPixels / spanCount
+        adapter.cellSizePx = cellPx
         val lm = GridLayoutManager(requireContext(), spanCount)
 
         // Full-width for headers, separators, footer
@@ -113,6 +116,7 @@ class LibraryFragment : Fragment() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         val spanCount = spanCountForOrientation()
+        adapter.cellSizePx = resources.displayMetrics.widthPixels / spanCount
         (binding.recyclerView.layoutManager as? GridLayoutManager)?.spanCount = spanCount
         binding.recyclerView.invalidateItemDecorations()
     }
@@ -144,7 +148,7 @@ class LibraryFragment : Fragment() {
 
     fun scrollToTop() = binding.recyclerView.scrollToPosition(0)
 
-    private fun onPhotoClick(flatIndex: Int, thumbnail: android.view.View) {
+    private fun onPhotoClick(flatIndex: Int, thumbnail: View) {
         val photos = adapter.currentList
             .filterIsInstance<GridItem.Photo>()
             .map { it.media }
@@ -167,7 +171,7 @@ class LibraryFragment : Fragment() {
 
     // ── Speculative prefetch ──────────────────────────────────────────────────
 
-    private inner class PrefetchListener(private val spanCount: Int) :
+    private inner class PrefetchListener(spanCount: Int) :
             RecyclerView.OnScrollListener() {
 
         private val prefetchAhead = spanCount * 5 // ~5 rows ahead
@@ -180,11 +184,14 @@ class LibraryFragment : Fragment() {
             val imageLoader = Coil.imageLoader(rv.context)
             for (i in lastVisible + 1..end) {
                 val item = adapter.currentList.getOrNull(i) as? GridItem.Photo ?: continue
+                val cellPx = adapter.cellSizePx.takeIf { it > 0 } ?: continue
                 imageLoader.enqueue(
                     ImageRequest.Builder(rv.context)
-                        .data(item.media.uri)
+                        .data(MediaThumb(item.media.uri, item.media.isVideo))
+                        .size(cellPx, cellPx)
+                        .precision(Precision.INEXACT)
                         .memoryCachePolicy(CachePolicy.ENABLED)
-                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.DISABLED)
                         .build()
                 )
             }

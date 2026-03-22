@@ -68,10 +68,13 @@ class MainActivity : AppCompatActivity() {
     private fun applyWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            binding.bottomNav.setPadding(0, 0, 0, systemBars.bottom)
+            // Push fragment content below the status bar
+            binding.fragmentContainer.setPadding(0, systemBars.top, 0, 0)
+            // Set statusBarBg height to cover the status bar area on top
             binding.statusBarBg.layoutParams = binding.statusBarBg.layoutParams.also {
                 it.height = systemBars.top
             }
+            binding.bottomNav.setPadding(0, 0, 0, systemBars.bottom)
             insets
         }
     }
@@ -197,7 +200,7 @@ class MainActivity : AppCompatActivity() {
             this,
             receiver,
             IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-            ContextCompat.RECEIVER_NOT_EXPORTED
+            ContextCompat.RECEIVER_EXPORTED
         )
     }
 

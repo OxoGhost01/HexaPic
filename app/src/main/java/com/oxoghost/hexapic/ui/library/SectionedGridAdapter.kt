@@ -5,7 +5,6 @@ import android.graphics.drawable.ColorDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -20,7 +19,10 @@ class SectionedGridAdapter(
     private val onPhotoClick: (photoIndex: Int, thumbnail: android.view.View) -> Unit,
 ) : ListAdapter<GridItem, RecyclerView.ViewHolder>(DIFF) {
 
-    /** Flat index (photos-only) → adapter position, built on each submitList. */
+    /** Cell size in pixels; set by the fragment after layout so Coil can size correctly. */
+    var cellSizePx: Int = 0
+
+    /** Flat index (photos-only) → adapter position, rebuilt after each diff completes. */
     private val photoFlatIndex = mutableListOf<Int>()
 
     // ── View types ────────────────────────────────────────────────────────────
@@ -43,10 +45,10 @@ class SectionedGridAdapter(
         }
     }
 
-    override fun submitList(list: List<GridItem>?) {
-        super.submitList(list)
+    override fun onCurrentListChanged(previousList: List<GridItem>, currentList: List<GridItem>) {
+        super.onCurrentListChanged(previousList, currentList)
         photoFlatIndex.clear()
-        list?.forEachIndexed { adapterPos, item ->
+        currentList.forEachIndexed { adapterPos, item ->
             if (item is GridItem.Photo) photoFlatIndex.add(adapterPos)
         }
     }
@@ -121,12 +123,12 @@ class SectionedGridAdapter(
                 if (flatIdx >= 0) onPhotoClick(flatIdx, binding.thumbnail)
             }
 
-            // Thumbnail — gray placeholder while loading
-            binding.thumbnail.load(media.uri) {
+            // Thumbnail — use MediaStore thumbnail API (system-cached, no full JPEG decode)
+            binding.thumbnail.load(MediaThumb(media.uri, media.isVideo)) {
                 placeholder(ColorDrawable(Color.parseColor("#FF2C2C2E")))
-                crossfade(true)
                 memoryCachePolicy(CachePolicy.ENABLED)
-                diskCachePolicy(CachePolicy.ENABLED)
+                diskCachePolicy(CachePolicy.DISABLED)  // system already caches thumbnails
+                if (cellSizePx > 0) size(cellSizePx, cellSizePx)
             }
 
             // Video duration badge

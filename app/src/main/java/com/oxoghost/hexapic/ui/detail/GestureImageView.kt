@@ -199,12 +199,8 @@ class GestureImageView @JvmOverloads constructor(
         else { if (b.left > 0) dx = -b.left; if (b.right < vw) dx = vw - b.right }
         if (b.height() <= vh) dy = (vh - b.height()) / 2f - b.top
         else { if (b.top > 0) dy = -b.top; if (b.bottom < vh) dy = vh - b.bottom }
-        if (dx != 0f || dy != 0f) {
-            suppMatrix.postTranslate(dx, dy)
-            // recompute drawMatrix inline (avoid recursive call)
-            drawMatrix.set(baseMatrix); drawMatrix.postConcat(suppMatrix)
-            imageMatrix = drawMatrix
-        }
+        if (dx != 0f || dy != 0f) suppMatrix.postTranslate(dx, dy)
+        // always let the caller's applyMatrix() set imageMatrix — never set it here
     }
 
     // ── Animations ────────────────────────────────────────────────────────────
@@ -223,17 +219,21 @@ class GestureImageView @JvmOverloads constructor(
     }
 
     private fun animateMatrix(from: FloatArray, to: FloatArray) {
-        val interp = FastOutSlowInInterpolator()
         val animator = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 250
-            interpolator = interp
+            interpolator = FastOutSlowInInterpolator()
             addUpdateListener { anim ->
                 val t = anim.animatedValue as Float
                 val vals = FloatArray(9) { i -> from[i] + (to[i] - from[i]) * t }
                 suppMatrix.setValues(vals)
-                clampTranslation()
-                applyMatrix()
+                applyMatrix()  // single imageMatrix write per frame — no ghost artifact
             }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    clampTranslation()  // snap any edge overflow after animation completes
+                    applyMatrix()
+                }
+            })
         }
         animator.start()
     }
