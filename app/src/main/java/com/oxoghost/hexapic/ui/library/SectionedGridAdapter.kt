@@ -16,7 +16,12 @@ import com.oxoghost.hexapic.R
 import com.oxoghost.hexapic.databinding.ItemPhotoBinding
 import java.util.concurrent.TimeUnit
 
-class SectionedGridAdapter : ListAdapter<GridItem, RecyclerView.ViewHolder>(DIFF) {
+class SectionedGridAdapter(
+    private val onPhotoClick: (photoIndex: Int, thumbnail: android.view.View) -> Unit,
+) : ListAdapter<GridItem, RecyclerView.ViewHolder>(DIFF) {
+
+    /** Flat index (photos-only) → adapter position, built on each submitList. */
+    private val photoFlatIndex = mutableListOf<Int>()
 
     // ── View types ────────────────────────────────────────────────────────────
 
@@ -35,6 +40,14 @@ class SectionedGridAdapter : ListAdapter<GridItem, RecyclerView.ViewHolder>(DIFF
                 else -> false
             }
             override fun areContentsTheSame(a: GridItem, b: GridItem) = a == b
+        }
+    }
+
+    override fun submitList(list: List<GridItem>?) {
+        super.submitList(list)
+        photoFlatIndex.clear()
+        list?.forEachIndexed { adapterPos, item ->
+            if (item is GridItem.Photo) photoFlatIndex.add(adapterPos)
         }
     }
 
@@ -98,6 +111,15 @@ class SectionedGridAdapter : ListAdapter<GridItem, RecyclerView.ViewHolder>(DIFF
 
         fun bind(item: GridItem.Photo) {
             val media = item.media
+
+            // Shared-element transition name
+            binding.thumbnail.transitionName = "photo_${media.id}"
+
+            // Click → open detail
+            binding.root.setOnClickListener {
+                val flatIdx = photoFlatIndex.indexOf(bindingAdapterPosition)
+                if (flatIdx >= 0) onPhotoClick(flatIdx, binding.thumbnail)
+            }
 
             // Thumbnail — gray placeholder while loading
             binding.thumbnail.load(media.uri) {

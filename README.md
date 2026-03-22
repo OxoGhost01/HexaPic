@@ -6,7 +6,8 @@ An Android gallery app inspired by the iPhone Photos app. Free, open-source, non
 
 - Browse all your photos and videos in a fast, clean grid
 - Photos grouped by month with sticky date headers
-- Video duration and favorite badges on each cell
+- Tap a photo to open it full-screen with a fluid hero transition
+- Pinch, double-tap, and swipe to navigate — feels native
 - Bottom navigation: Library, For You, Albums, Search
 - Auto-updates — new versions install in one tap
 

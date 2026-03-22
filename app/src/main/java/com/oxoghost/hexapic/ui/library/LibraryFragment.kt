@@ -17,10 +17,13 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.app.ActivityOptionsCompat
 import coil.Coil
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.oxoghost.hexapic.databinding.FragmentLibraryBinding
+import com.oxoghost.hexapic.ui.detail.DetailActivity
+import com.oxoghost.hexapic.ui.detail.DetailDataStore
 
 class LibraryFragment : Fragment() {
 
@@ -28,7 +31,7 @@ class LibraryFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: LibraryViewModel by activityViewModels()
-    private val adapter = SectionedGridAdapter()
+    private val adapter = SectionedGridAdapter(::onPhotoClick)
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -140,6 +143,22 @@ class LibraryFragment : Fragment() {
     }
 
     fun scrollToTop() = binding.recyclerView.scrollToPosition(0)
+
+    private fun onPhotoClick(flatIndex: Int, thumbnail: android.view.View) {
+        val photos = adapter.currentList
+            .filterIsInstance<GridItem.Photo>()
+            .map { it.media }
+        if (photos.isEmpty()) return
+
+        DetailDataStore.photos        = photos
+        DetailDataStore.startPosition = flatIndex
+
+        val mediaId = photos[flatIndex].id
+        val options = ActivityOptionsCompat.makeSceneTransitionAnimation(
+            requireActivity(), thumbnail, "photo_$mediaId"
+        )
+        startActivity(Intent(requireContext(), DetailActivity::class.java), options.toBundle())
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

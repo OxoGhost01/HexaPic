@@ -11,7 +11,7 @@ data class ReleaseInfo(val versionName: String, val apkUrl: String)
 object UpdateChecker {
 
     private const val API_URL =
-        "https://api.github.com/repos/oxoghost/HexaPic/releases/latest"
+        "https://api.github.com/repos/oxoghost01/HexaPic/releases/latest"
 
     suspend fun check(currentVersion: String): ReleaseInfo? = withContext(Dispatchers.IO) {
         try {
