@@ -15,10 +15,10 @@ import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.doOnLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.oxoghost.hexapic.BuildConfig
 import com.oxoghost.hexapic.databinding.ActivityMainBinding
 import com.oxoghost.hexapic.ui.albums.AlbumsFragment
@@ -66,9 +66,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun applyWindowInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             binding.bottomNav.setPadding(0, 0, 0, systemBars.bottom)
+            binding.statusBarBg.layoutParams = binding.statusBarBg.layoutParams.also {
+                it.height = systemBars.top
+            }
             insets
         }
     }
@@ -138,8 +141,7 @@ class MainActivity : AppCompatActivity() {
         binding.tvUpdateVersion.text = getString(R.string.update_new_version, info.versionName)
 
         binding.bottomNav.doOnLayout { nav ->
-            val params = binding.updateBanner.layoutParams
-                    as androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams
+            val params = binding.updateBanner.layoutParams as CoordinatorLayout.LayoutParams
             params.bottomMargin = nav.height
             binding.updateBanner.layoutParams = params
 

@@ -22,18 +22,6 @@
         android:layout_gravity="center"
         android:visibility="gone" />
 
-    <!-- Media count footer overlaid at bottom — shown inside RecyclerView footer instead;
-         kept here as fallback below the list -->
-    <TextView
-        android:id="@+id/tv_media_count"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="80dp"
-        android:textColor="@color/gray_light"
-        android:textSize="12sp"
-        android:visibility="gone" />
-
     <!-- Permission denied state -->
     <LinearLayout
         android:id="@+id/layout_permission_denied"

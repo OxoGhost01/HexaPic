@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/tvYear"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="12dp"
+    android:paddingTop="24dp"
+    android:paddingBottom="4dp"
+    android:textColor="@color/gray_light"
+    android:textSize="13sp"
+    android:fontFamily="sans-serif-medium"
+    android:letterSpacing="0.05" />

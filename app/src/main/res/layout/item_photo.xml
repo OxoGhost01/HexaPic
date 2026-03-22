@@ -13,7 +13,7 @@
         android:scaleType="centerCrop"
         android:contentDescription="@null" />
 
-    <!-- Video badge row: play icon + duration (bottom-left) -->
+    <!-- Video badge: play icon + duration (bottom-left, semi-transparent bg) -->
     <LinearLayout
         android:id="@+id/video_badge_container"
         android:layout_width="wrap_content"
@@ -21,7 +21,10 @@
         android:layout_gravity="bottom|start"
         android:layout_margin="4dp"
         android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:background="@drawable/bg_badge"
+        android:paddingHorizontal="3dp"
+        android:paddingVertical="2dp">
 
         <ImageView
             android:id="@+id/video_icon"
@@ -42,5 +45,18 @@
             android:visibility="gone" />
 
     </LinearLayout>
+
+    <!-- Favorite heart badge (bottom-right) -->
+    <ImageView
+        android:id="@+id/iv_favorite"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="4dp"
+        android:src="@drawable/ic_favorite"
+        android:background="@drawable/bg_badge"
+        android:padding="3dp"
+        android:visibility="gone"
+        android:contentDescription="@null" />
 
 </FrameLayout>

@@ -16,7 +16,10 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.GridLayoutManager
-import com.google.android.material.snackbar.Snackbar
+import androidx.recyclerview.widget.RecyclerView
+import coil.Coil
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.oxoghost.hexapic.databinding.FragmentLibraryBinding
 
 class LibraryFragment : Fragment() {
@@ -25,7 +28,7 @@ class LibraryFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: LibraryViewModel by activityViewModels()
-    private val adapter = PhotoGridAdapter()
+    private val adapter = SectionedGridAdapter()
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -58,8 +61,7 @@ class LibraryFragment : Fragment() {
 
         if (hasPermissions()) {
             showGrid()
-            // Only load if not already loaded
-            if (viewModel.mediaItems.value.isNullOrEmpty()) {
+            if (viewModel.gridItems.value.isNullOrEmpty()) {
                 viewModel.loadMedia()
             }
         } else {
@@ -69,35 +71,37 @@ class LibraryFragment : Fragment() {
 
     private fun setupGrid() {
         val spanCount = spanCountForOrientation()
-        val layoutManager = GridLayoutManager(requireContext(), spanCount)
-        binding.recyclerView.layoutManager = layoutManager
-        binding.recyclerView.adapter = adapter
-        binding.recyclerView.setHasFixedSize(true)
+        val lm = GridLayoutManager(requireContext(), spanCount)
 
-        // 1dp gap between cells via item decoration
-        val gap = resources.displayMetrics.density.toInt() // ~1dp in px
-        binding.recyclerView.addItemDecoration(GridSpacingDecoration(spanCount, gap))
+        // Full-width for headers, separators, footer
+        lm.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+            override fun getSpanSize(position: Int): Int {
+                return when (adapter.getItemViewType(position)) {
+                    SectionedGridAdapter.TYPE_PHOTO -> 1
+                    else -> spanCount
+                }
+            }
+        }
+        lm.spanSizeLookup.isSpanIndexCacheEnabled = true
+
+        binding.recyclerView.layoutManager = lm
+        binding.recyclerView.adapter = adapter
+        binding.recyclerView.setHasFixedSize(false) // variable row heights (headers differ)
+
+        val gap = resources.displayMetrics.density.toInt()
+        binding.recyclerView.addItemDecoration(GridSpacingDecoration(spanCount, gap, adapter))
+        binding.recyclerView.addItemDecoration(StickyHeaderDecoration(adapter))
+
+        binding.recyclerView.addOnScrollListener(PrefetchListener(spanCount))
     }
 
     private fun setupObservers() {
-        viewModel.mediaItems.observe(viewLifecycleOwner) { items ->
+        viewModel.gridItems.observe(viewLifecycleOwner) { items ->
             adapter.submitList(items)
             if (items.isNotEmpty()) {
-                // Scroll to bottom (most recent = end of list sorted desc = position 0 is newest)
-                // Items are sorted newest-first; bottom of list = oldest. Per spec: scroll to bottom
-                // means most recent visible. Since newest is at position 0, scroll to top on first load.
-                binding.recyclerView.post {
-                    binding.recyclerView.scrollToPosition(0)
-                }
+                binding.recyclerView.post { binding.recyclerView.scrollToPosition(0) }
             }
-            binding.tvMediaCount.text = getString(
-                com.oxoghost.hexapic.R.string.photos_count,
-                viewModel.photoCount,
-                viewModel.videoCount
-            )
-            binding.tvMediaCount.visibility = if (items.isNotEmpty()) View.VISIBLE else View.GONE
         }
-
         viewModel.loading.observe(viewLifecycleOwner) { loading ->
             binding.progressBar.visibility = if (loading) View.VISIBLE else View.GONE
         }
@@ -107,32 +111,23 @@ class LibraryFragment : Fragment() {
         super.onConfigurationChanged(newConfig)
         val spanCount = spanCountForOrientation()
         (binding.recyclerView.layoutManager as? GridLayoutManager)?.spanCount = spanCount
-        // Re-attach item decorations with new span count
         binding.recyclerView.invalidateItemDecorations()
     }
 
-    private fun spanCountForOrientation(): Int {
-        return if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 6 else 4
+    private fun spanCountForOrientation() =
+        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) 6 else 4
+
+    private fun hasPermissions() = requiredPermissions().all {
+        ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun hasPermissions(): Boolean {
-        val perms = requiredPermissions()
-        return perms.all {
-            ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-    private fun requiredPermissions(): Array<String> {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+    private fun requiredPermissions() =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
             arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO)
-        } else {
+        else
             arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-    }
 
-    private fun requestPermissions() {
-        permissionLauncher.launch(requiredPermissions())
-    }
+    private fun requestPermissions() = permissionLauncher.launch(requiredPermissions())
 
     private fun showGrid() {
         binding.recyclerView.visibility = View.VISIBLE
@@ -144,13 +139,36 @@ class LibraryFragment : Fragment() {
         binding.layoutPermissionDenied.visibility = View.VISIBLE
     }
 
-    /** Called by MainActivity when the active tab is re-tapped — scrolls to top. */
-    fun scrollToTop() {
-        binding.recyclerView.scrollToPosition(0)
-    }
+    fun scrollToTop() = binding.recyclerView.scrollToPosition(0)
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    // ── Speculative prefetch ──────────────────────────────────────────────────
+
+    private inner class PrefetchListener(private val spanCount: Int) :
+            RecyclerView.OnScrollListener() {
+
+        private val prefetchAhead = spanCount * 5 // ~5 rows ahead
+
+        override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
+            if (dy <= 0) return
+            val lm = rv.layoutManager as? GridLayoutManager ?: return
+            val lastVisible = lm.findLastVisibleItemPosition()
+            val end = minOf(lastVisible + prefetchAhead, adapter.itemCount - 1)
+            val imageLoader = Coil.imageLoader(rv.context)
+            for (i in lastVisible + 1..end) {
+                val item = adapter.currentList.getOrNull(i) as? GridItem.Photo ?: continue
+                imageLoader.enqueue(
+                    ImageRequest.Builder(rv.context)
+                        .data(item.media.uri)
+                        .memoryCachePolicy(CachePolicy.ENABLED)
+                        .diskCachePolicy(CachePolicy.ENABLED)
+                        .build()
+                )
+            }
+        }
     }
 }

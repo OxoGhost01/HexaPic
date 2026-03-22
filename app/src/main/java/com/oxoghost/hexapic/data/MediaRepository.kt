@@ -2,6 +2,7 @@ package com.oxoghost.hexapic.data
 
 import android.content.ContentUris
 import android.content.Context
+import android.os.Build
 import android.provider.MediaStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,17 +20,20 @@ class MediaRepository(private val context: Context) {
 
     private fun queryImages(): List<MediaItem> {
         val collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        val projection = arrayOf(
-            MediaStore.Images.Media._ID,
-            MediaStore.Images.Media.DATE_ADDED,
-            MediaStore.Images.Media.MIME_TYPE,
-        )
+        val hasFavoriteCol = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        val projection = buildList {
+            add(MediaStore.Images.Media._ID)
+            add(MediaStore.Images.Media.DATE_ADDED)
+            add(MediaStore.Images.Media.MIME_TYPE)
+            if (hasFavoriteCol) add(MediaStore.MediaColumns.IS_FAVORITE)
+        }.toTypedArray()
         val sortOrder = "${MediaStore.Images.Media.DATE_ADDED} DESC"
         val items = mutableListOf<MediaItem>()
         context.contentResolver.query(collection, projection, null, null, sortOrder)?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media._ID)
             val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATE_ADDED)
             val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.MIME_TYPE)
+            val favCol = if (hasFavoriteCol) cursor.getColumnIndex(MediaStore.MediaColumns.IS_FAVORITE) else -1
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
                 val uri = ContentUris.withAppendedId(collection, id)
@@ -38,6 +42,7 @@ class MediaRepository(private val context: Context) {
                     uri = uri,
                     dateAdded = cursor.getLong(dateCol),
                     mimeType = cursor.getString(mimeCol) ?: "image/jpeg",
+                    isFavorite = favCol >= 0 && cursor.getInt(favCol) == 1,
                 )
             }
         }
@@ -46,12 +51,14 @@ class MediaRepository(private val context: Context) {
 
     private fun queryVideos(): List<MediaItem> {
         val collection = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-        val projection = arrayOf(
-            MediaStore.Video.Media._ID,
-            MediaStore.Video.Media.DATE_ADDED,
-            MediaStore.Video.Media.MIME_TYPE,
-            MediaStore.Video.Media.DURATION,
-        )
+        val hasFavoriteCol = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        val projection = buildList {
+            add(MediaStore.Video.Media._ID)
+            add(MediaStore.Video.Media.DATE_ADDED)
+            add(MediaStore.Video.Media.MIME_TYPE)
+            add(MediaStore.Video.Media.DURATION)
+            if (hasFavoriteCol) add(MediaStore.MediaColumns.IS_FAVORITE)
+        }.toTypedArray()
         val sortOrder = "${MediaStore.Video.Media.DATE_ADDED} DESC"
         val items = mutableListOf<MediaItem>()
         context.contentResolver.query(collection, projection, null, null, sortOrder)?.use { cursor ->
@@ -59,6 +66,7 @@ class MediaRepository(private val context: Context) {
             val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
             val mimeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)
             val durCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+            val favCol = if (hasFavoriteCol) cursor.getColumnIndex(MediaStore.MediaColumns.IS_FAVORITE) else -1
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
                 val uri = ContentUris.withAppendedId(collection, id)
@@ -68,6 +76,7 @@ class MediaRepository(private val context: Context) {
                     dateAdded = cursor.getLong(dateCol),
                     mimeType = cursor.getString(mimeCol) ?: "video/mp4",
                     duration = cursor.getLong(durCol),
+                    isFavorite = favCol >= 0 && cursor.getInt(favCol) == 1,
                 )
             }
         }
