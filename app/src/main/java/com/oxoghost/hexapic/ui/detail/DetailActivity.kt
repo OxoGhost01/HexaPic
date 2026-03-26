@@ -76,7 +76,11 @@ class DetailActivity : AppCompatActivity(), DetailController {
         val photos = DetailDataStore.photos
         binding.viewPager.adapter = object : FragmentStateAdapter(this as FragmentActivity) {
             override fun getItemCount() = photos.size
-            override fun createFragment(position: Int) = PhotoDetailFragment.newInstance(position)
+            override fun createFragment(position: Int): Fragment {
+                val media = photos.getOrNull(position)
+                return if (media?.isVideo == true) VideoDetailFragment.newInstance(position)
+                       else PhotoDetailFragment.newInstance(position)
+            }
         }
         binding.viewPager.setCurrentItem(DetailDataStore.startPosition, false)
         binding.viewPager.offscreenPageLimit = 1
@@ -84,21 +88,27 @@ class DetailActivity : AppCompatActivity(), DetailController {
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 updateChromeMeta(position)
-                // Update favorite icon for new page
                 val media = photos.getOrNull(position)
                 binding.btnFavorite.setImageResource(
                     if (media?.isFavorite == true) R.drawable.ic_favorite
                     else R.drawable.ic_favorite_outline
                 )
+                // Hide bottom action buttons for video pages (they have their own controls)
+                binding.bottomChrome.visibility =
+                    if (media?.isVideo == true) android.view.View.GONE
+                    else android.view.View.VISIBLE
             }
         })
 
         updateChromeMeta(DetailDataStore.startPosition)
-        val media = photos.getOrNull(DetailDataStore.startPosition)
+        val startMedia = photos.getOrNull(DetailDataStore.startPosition)
         binding.btnFavorite.setImageResource(
-            if (media?.isFavorite == true) R.drawable.ic_favorite
+            if (startMedia?.isFavorite == true) R.drawable.ic_favorite
             else R.drawable.ic_favorite_outline
         )
+        binding.bottomChrome.visibility =
+            if (startMedia?.isVideo == true) android.view.View.GONE
+            else android.view.View.VISIBLE
     }
 
     private fun updateChromeMeta(position: Int) {
@@ -128,7 +138,10 @@ class DetailActivity : AppCompatActivity(), DetailController {
         chromeVisible = !chromeVisible
         val alpha = if (chromeVisible) 1f else 0f
         binding.topChrome.animate().alpha(alpha).setDuration(200).start()
-        binding.bottomChrome.animate().alpha(alpha).setDuration(200).start()
+        // Only animate bottomChrome if it is currently shown (not suppressed by a video page)
+        if (binding.bottomChrome.visibility == View.VISIBLE) {
+            binding.bottomChrome.animate().alpha(alpha).setDuration(200).start()
+        }
         if (chromeVisible) showSystemBars() else hideSystemBars()
     }
 

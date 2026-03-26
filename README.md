@@ -8,6 +8,7 @@ An Android gallery app inspired by the iPhone Photos app. Free, open-source, non
 - Photos grouped by month with sticky date headers
 - Tap a photo to open it full-screen with a fluid hero transition
 - Pinch, double-tap, and swipe to navigate — feels native
+- **Video playback** — scrubber, seek preview, mute, no autoplay
 - Bottom navigation: Library, For You, Albums, Search
 - Auto-updates — new versions install in one tap
 
@@ -41,6 +42,7 @@ APK output: `app/build/outputs/apk/debug/app-debug.apk`
 - AndroidX Fragment + ViewModel + LiveData
 - RecyclerView + GridLayoutManager
 - Coil (image loading)
+- Media3 / ExoPlayer (video playback)
 - Material Components 3
 - ViewBinding
 
