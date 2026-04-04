@@ -8,24 +8,34 @@
 
     <!-- ── Top bar ── -->
     <RelativeLayout
-        android:id="@+id/topBar"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:background="@color/background_dark"
         android:paddingHorizontal="4dp">
 
-        <!-- Normal mode: Library title (center) -->
+        <!-- Back button (left) -->
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_back"
+            android:contentDescription="@null" />
+
+        <!-- Title (center) -->
         <TextView
             android:id="@+id/tv_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="Library"
+            android:text="@string/recently_deleted"
             android:textColor="@color/white"
             android:textSize="17sp"
             android:textStyle="bold" />
 
-        <!-- Normal mode: Select button (right) -->
+        <!-- Normal mode: Select (right) -->
         <Button
             android:id="@+id/btn_select"
             style="@style/Widget.MaterialComponents.Button.TextButton"
@@ -39,7 +49,7 @@
             android:textColor="@color/system_blue"
             android:textSize="15sp" />
 
-        <!-- Selection mode: Cancel button (left) -->
+        <!-- Selection mode: Cancel (left, overlaps back) -->
         <Button
             android:id="@+id/btn_cancel"
             style="@style/Widget.MaterialComponents.Button.TextButton"
@@ -54,18 +64,7 @@
             android:textSize="15sp"
             android:visibility="gone" />
 
-        <!-- Selection mode: N Selected (center) -->
-        <TextView
-            android:id="@+id/tv_selection_count"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:textColor="@color/white"
-            android:textSize="17sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
-
-        <!-- Selection mode: Select All / Deselect All (right) -->
+        <!-- Selection mode: Select All (right) -->
         <Button
             android:id="@+id/btn_select_all"
             style="@style/Widget.MaterialComponents.Button.TextButton"
@@ -88,79 +87,44 @@
         android:layout_height="1px"
         android:background="@color/gray_medium" />
 
-    <!-- ── Content area ── -->
+    <!-- ── Content (hidden until biometric auth passes) ── -->
     <FrameLayout
+        android:id="@+id/content_layout"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- Grid -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:scrollbarStyle="insideOverlay"
             android:overScrollMode="never" />
 
-        <!-- Loading spinner -->
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+        <TextView
+            android:id="@+id/tv_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:text="@string/recently_deleted_empty"
+            android:textColor="@color/gray_light"
+            android:textSize="16sp"
             android:visibility="gone" />
-
-        <!-- Permission denied state -->
-        <LinearLayout
-            android:id="@+id/layout_permission_denied"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="32dp"
-            android:visibility="gone">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/permission_denied_title"
-                android:textColor="@color/white"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:gravity="center"
-                android:text="@string/permission_denied_message"
-                android:textColor="@color/gray_light"
-                android:textSize="14sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_open_settings"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:text="@string/open_settings" />
-
-        </LinearLayout>
 
     </FrameLayout>
 
     <!-- ── Bottom action bar (selection mode only) ── -->
     <LinearLayout
-        android:id="@+id/selection_bottom_bar"
+        android:id="@+id/bottom_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:background="@color/surface_dark"
         android:visibility="gone">
 
-        <!-- Share -->
+        <!-- Recover -->
         <LinearLayout
-            android:id="@+id/btn_share_selected"
+            android:id="@+id/btn_recover"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -174,74 +138,20 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@drawable/ic_share_detail"
+                android:src="@drawable/ic_recover"
                 android:contentDescription="@null" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="@string/share"
-                android:textColor="@color/white"
+                android:text="@string/recover"
+                android:textColor="@color/system_blue"
                 android:textSize="10sp" />
         </LinearLayout>
 
-        <!-- Add to Album -->
+        <!-- Delete Permanently -->
         <LinearLayout
-            android:id="@+id/btn_add_to_album"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_add_to_album"
-                android:contentDescription="@null" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/add_to_album"
-                android:textColor="@color/white"
-                android:textSize="10sp" />
-        </LinearLayout>
-
-        <!-- Favorite -->
-        <LinearLayout
-            android:id="@+id/btn_favorite_selected"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_favorite_outline"
-                android:contentDescription="@null" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/favorite"
-                android:textColor="@color/white"
-                android:textSize="10sp" />
-        </LinearLayout>
-
-        <!-- Delete -->
-        <LinearLayout
-            android:id="@+id/btn_delete_selected"
+            android:id="@+id/btn_delete_permanently"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -261,7 +171,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="@string/delete"
+                android:text="@string/delete_permanently"
                 android:textColor="#FFFF453A"
                 android:textSize="10sp" />
         </LinearLayout>

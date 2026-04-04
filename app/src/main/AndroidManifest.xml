@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <!-- Android 13+ (API 33+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -36,6 +37,11 @@
 
         <activity
             android:name=".ui.detail.DetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.HexaPic" />
+
+        <activity
+            android:name=".ui.deleted.RecentlyDeletedActivity"
             android:exported="false"
             android:theme="@style/Theme.HexaPic" />
 

@@ -59,4 +59,22 @@
         android:visibility="gone"
         android:contentDescription="@null" />
 
+    <!-- Selection dim overlay — shown when this cell is selected -->
+    <View
+        android:id="@+id/selection_dim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#55000000"
+        android:visibility="gone" />
+
+    <!-- Selection circle indicator (top-right) — shown in selection mode -->
+    <ImageView
+        android:id="@+id/selection_indicator"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="5dp"
+        android:visibility="gone"
+        android:contentDescription="@null" />
+
 </FrameLayout>

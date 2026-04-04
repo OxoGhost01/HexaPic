@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/cell_gap">
+
+    <com.oxoghost.hexapic.ui.library.SquareImageView
+        android:id="@+id/thumbnail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scaleType="centerCrop"
+        android:contentDescription="@null" />
+
+    <!-- "N days ago" label (bottom-left) -->
+    <TextView
+        android:id="@+id/tv_days_ago"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="4dp"
+        android:background="@drawable/bg_badge"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="2dp"
+        android:textColor="@color/white"
+        android:textSize="9sp"
+        android:textStyle="bold" />
+
+    <!-- Selection dim overlay -->
+    <View
+        android:id="@+id/selection_dim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#55000000"
+        android:visibility="gone" />
+
+    <!-- Selection circle indicator (top-right) -->
+    <ImageView
+        android:id="@+id/selection_indicator"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="5dp"
+        android:visibility="gone"
+        android:contentDescription="@null" />
+
+</FrameLayout>

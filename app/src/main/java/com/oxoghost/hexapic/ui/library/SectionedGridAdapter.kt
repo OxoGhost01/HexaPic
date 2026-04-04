@@ -16,7 +16,9 @@ import com.oxoghost.hexapic.databinding.ItemPhotoBinding
 import java.util.concurrent.TimeUnit
 
 class SectionedGridAdapter(
-    private val onPhotoClick: (photoIndex: Int, thumbnail: android.view.View) -> Unit,
+    private val onPhotoClick:     (photoIndex: Int, thumbnail: View) -> Unit,
+    private val onPhotoToggle:    (mediaId: Long) -> Unit,
+    private val onPhotoLongClick: (mediaId: Long) -> Unit,
 ) : ListAdapter<GridItem, RecyclerView.ViewHolder>(DIFF) {
 
     /** Cell size in pixels; set by the fragment after layout so Coil can size correctly. */
@@ -25,7 +27,36 @@ class SectionedGridAdapter(
     /** Flat index (photos-only) → adapter position, rebuilt after each diff completes. */
     private val photoFlatIndex = mutableListOf<Int>()
 
-    // ── View types ────────────────────────────────────────────────────────────
+    // ── Selection state ────────────────────────────────────────────────────────
+
+    var selectionMode: Boolean  = false
+        private set
+    var selectedIds:   Set<Long> = emptySet()
+        private set
+
+    /** Switch selection mode on/off and redraw all photo cells. */
+    fun setSelectionMode(mode: Boolean) {
+        if (selectionMode == mode) return
+        selectionMode = mode
+        notifyItemRangeChanged(0, itemCount, PAYLOAD_SELECTION)
+    }
+
+    /**
+     * Update the selected-IDs set. Only cells whose selection state actually changed
+     * receive a partial rebind, keeping the rest stable.
+     */
+    fun setSelectedIds(newIds: Set<Long>) {
+        val oldIds = selectedIds
+        selectedIds = newIds
+        for (i in 0 until itemCount) {
+            val item = currentList.getOrNull(i) as? GridItem.Photo ?: continue
+            if ((item.media.id in oldIds) != (item.media.id in newIds)) {
+                notifyItemChanged(i, PAYLOAD_SELECTION)
+            }
+        }
+    }
+
+    // ── View types ─────────────────────────────────────────────────────────────
 
     companion object {
         const val TYPE_MONTH_HEADER = 0
@@ -33,12 +64,14 @@ class SectionedGridAdapter(
         const val TYPE_PHOTO       = 2
         const val TYPE_FOOTER      = 3
 
+        private const val PAYLOAD_SELECTION = "sel"
+
         private val DIFF = object : DiffUtil.ItemCallback<GridItem>() {
             override fun areItemsTheSame(a: GridItem, b: GridItem) = when {
-                a is GridItem.MonthHeader  && b is GridItem.MonthHeader  -> a.label == b.label
+                a is GridItem.MonthHeader   && b is GridItem.MonthHeader   -> a.label == b.label
                 a is GridItem.YearSeparator && b is GridItem.YearSeparator -> a.year == b.year
-                a is GridItem.Photo        && b is GridItem.Photo        -> a.media.id == b.media.id
-                a is GridItem.Footer       && b is GridItem.Footer       -> true
+                a is GridItem.Photo         && b is GridItem.Photo         -> a.media.id == b.media.id
+                a is GridItem.Footer        && b is GridItem.Footer        -> true
                 else -> false
             }
             override fun areContentsTheSame(a: GridItem, b: GridItem) = a == b
@@ -60,7 +93,7 @@ class SectionedGridAdapter(
         is GridItem.Footer        -> TYPE_FOOTER
     }
 
-    // ── ViewHolder creation ───────────────────────────────────────────────────
+    // ── ViewHolder creation ────────────────────────────────────────────────────
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val inflater = LayoutInflater.from(parent.context)
@@ -81,7 +114,20 @@ class SectionedGridAdapter(
         }
     }
 
-    // ── ViewHolders ───────────────────────────────────────────────────────────
+    /** Payload-based partial rebind — only updates the selection chrome. */
+    override fun onBindViewHolder(
+        holder: RecyclerView.ViewHolder,
+        position: Int,
+        payloads: List<Any>,
+    ) {
+        if (payloads.isNotEmpty() && payloads.all { it == PAYLOAD_SELECTION } && holder is PhotoVH) {
+            holder.bindSelection()
+        } else {
+            super.onBindViewHolder(holder, position, payloads)
+        }
+    }
+
+    // ── ViewHolders ────────────────────────────────────────────────────────────
 
     class MonthHeaderVH(view: View) : RecyclerView.ViewHolder(view) {
         private val label = view.findViewById<TextView>(R.id.tvSectionLabel)
@@ -108,41 +154,72 @@ class SectionedGridAdapter(
         }
     }
 
-    inner class PhotoVH(private val binding: ItemPhotoBinding) :
-            RecyclerView.ViewHolder(binding.root) {
+    inner class PhotoVH(private val b: ItemPhotoBinding) :
+            RecyclerView.ViewHolder(b.root) {
+
+        private var currentMediaId: Long = -1L
 
         fun bind(item: GridItem.Photo) {
             val media = item.media
+            currentMediaId = media.id
 
             // Shared-element transition name
-            binding.thumbnail.transitionName = "photo_${media.id}"
+            b.thumbnail.transitionName = "photo_${media.id}"
 
-            // Click → open detail
-            binding.root.setOnClickListener {
-                val flatIdx = photoFlatIndex.indexOf(bindingAdapterPosition)
-                if (flatIdx >= 0) onPhotoClick(flatIdx, binding.thumbnail)
+            // Click — open detail or toggle selection
+            b.root.setOnClickListener {
+                val pos = bindingAdapterPosition
+                if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
+                if (selectionMode) {
+                    onPhotoToggle(currentMediaId)
+                } else {
+                    val flatIdx = photoFlatIndex.indexOf(pos)
+                    if (flatIdx >= 0) onPhotoClick(flatIdx, b.thumbnail)
+                }
             }
 
-            // Thumbnail — use MediaStore thumbnail API (system-cached, no full JPEG decode)
-            binding.thumbnail.load(MediaThumb(media.uri, media.isVideo)) {
+            // Long-press — enter selection mode
+            b.root.setOnLongClickListener {
+                if (!selectionMode) {
+                    onPhotoLongClick(currentMediaId)
+                    true
+                } else false
+            }
+
+            // Thumbnail
+            b.thumbnail.load(MediaThumb(media.uri, media.isVideo)) {
                 placeholder(ColorDrawable(Color.parseColor("#FF2C2C2E")))
                 memoryCachePolicy(CachePolicy.ENABLED)
-                diskCachePolicy(CachePolicy.DISABLED)  // system already caches thumbnails
+                diskCachePolicy(CachePolicy.DISABLED)
                 if (cellSizePx > 0) size(cellSizePx, cellSizePx)
             }
 
             // Video duration badge
             if (media.isVideo && media.duration > 0) {
-                binding.videoDuration.text = formatDuration(media.duration)
-                binding.videoDuration.visibility = View.VISIBLE
-                binding.videoIcon.visibility = View.VISIBLE
-                binding.videoBadgeContainer.visibility = View.VISIBLE
+                b.videoDuration.text = formatDuration(media.duration)
+                b.videoDuration.visibility = View.VISIBLE
+                b.videoIcon.visibility = View.VISIBLE
+                b.videoBadgeContainer.visibility = View.VISIBLE
             } else {
-                binding.videoBadgeContainer.visibility = View.GONE
+                b.videoBadgeContainer.visibility = View.GONE
             }
 
             // Favorite heart
-            binding.ivFavorite.visibility = if (media.isFavorite) View.VISIBLE else View.GONE
+            b.ivFavorite.visibility = if (media.isFavorite) View.VISIBLE else View.GONE
+
+            bindSelection()
+        }
+
+        fun bindSelection() {
+            val selected = currentMediaId in selectedIds
+            b.selectionIndicator.visibility =
+                if (selectionMode) View.VISIBLE else View.GONE
+            b.selectionDim.visibility =
+                if (selectionMode && selected) View.VISIBLE else View.GONE
+            b.selectionIndicator.setImageResource(
+                if (selected) R.drawable.ic_selection_checked
+                else          R.drawable.ic_selection_empty
+            )
         }
 
         private fun formatDuration(ms: Long): String {
@@ -159,9 +236,8 @@ class SectionedGridAdapter(
         }
     }
 
-    // ── Sticky-header helpers (called by StickyHeaderDecoration) ─────────────
+    // ── Sticky-header helpers (called by StickyHeaderDecoration) ──────────────
 
-    /** Returns the position of the MonthHeader that governs [position], or -1. */
     fun findHeaderPositionFor(position: Int): Int {
         for (i in position downTo 0) {
             if (currentList.getOrNull(i) is GridItem.MonthHeader) return i
@@ -169,7 +245,6 @@ class SectionedGridAdapter(
         return -1
     }
 
-    /** Returns the position of the next MonthHeader after [headerPos], or -1. */
     fun findNextHeaderAfter(headerPos: Int): Int {
         for (i in headerPos + 1 until itemCount) {
             if (currentList.getOrNull(i) is GridItem.MonthHeader) return i

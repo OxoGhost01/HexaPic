@@ -9,6 +9,7 @@ import android.transition.TransitionSet
 import android.view.View
 import android.view.WindowManager
 import androidx.activity.addCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -16,10 +17,13 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.interpolator.view.animation.FastOutSlowInInterpolator
+import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.oxoghost.hexapic.R
+import com.oxoghost.hexapic.data.RecentlyDeletedRepository
 import com.oxoghost.hexapic.databinding.ActivityDetailBinding
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -38,7 +42,6 @@ class DetailActivity : AppCompatActivity(), DetailController {
     private val dateFormat = SimpleDateFormat("d MMMM yyyy · HH:mm", Locale.getDefault())
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Shared-element enter transition (spring-feel curve, 280ms)
         val sharedTransition = TransitionSet().apply {
             ordering = TransitionSet.ORDERING_TOGETHER
             addTransition(ChangeBounds())
@@ -54,7 +57,6 @@ class DetailActivity : AppCompatActivity(), DetailController {
         binding = ActivityDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Edge-to-edge, black background
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.setBackgroundDrawable(bgDrawable)
         @Suppress("DEPRECATION")
@@ -69,7 +71,7 @@ class DetailActivity : AppCompatActivity(), DetailController {
         onBackPressedDispatcher.addCallback(this) { finishAfterTransition() }
         binding.btnBack.setOnClickListener { finishAfterTransition() }
         binding.btnShare.setOnClickListener { shareCurrentPhoto() }
-        // btnFavorite, btnInfo, btnDelete are stubs
+        binding.btnDelete.setOnClickListener { confirmDeleteCurrentPhoto() }
     }
 
     private fun setupPager() {
@@ -93,10 +95,8 @@ class DetailActivity : AppCompatActivity(), DetailController {
                     if (media?.isFavorite == true) R.drawable.ic_favorite
                     else R.drawable.ic_favorite_outline
                 )
-                // Hide bottom action buttons for video pages (they have their own controls)
                 binding.bottomChrome.visibility =
-                    if (media?.isVideo == true) android.view.View.GONE
-                    else android.view.View.VISIBLE
+                    if (media?.isVideo == true) View.GONE else View.VISIBLE
             }
         })
 
@@ -107,8 +107,7 @@ class DetailActivity : AppCompatActivity(), DetailController {
             else R.drawable.ic_favorite_outline
         )
         binding.bottomChrome.visibility =
-            if (startMedia?.isVideo == true) android.view.View.GONE
-            else android.view.View.VISIBLE
+            if (startMedia?.isVideo == true) View.GONE else View.VISIBLE
     }
 
     private fun updateChromeMeta(position: Int) {
@@ -132,13 +131,27 @@ class DetailActivity : AppCompatActivity(), DetailController {
         startActivity(android.content.Intent.createChooser(intent, null))
     }
 
+    private fun confirmDeleteCurrentPhoto() {
+        val pos = binding.viewPager.currentItem
+        val media = DetailDataStore.photos.getOrNull(pos) ?: return
+        AlertDialog.Builder(this)
+            .setMessage(getString(R.string.delete_confirm_single))
+            .setPositiveButton(R.string.move_to_recently_deleted) { _, _ ->
+                lifecycleScope.launch {
+                    RecentlyDeletedRepository(this@DetailActivity).softDelete(listOf(media))
+                    finishAfterTransition()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
     // ── Controller ────────────────────────────────────────────────────────────
 
     override fun onToggleChrome() {
         chromeVisible = !chromeVisible
         val alpha = if (chromeVisible) 1f else 0f
         binding.topChrome.animate().alpha(alpha).setDuration(200).start()
-        // Only animate bottomChrome if it is currently shown (not suppressed by a video page)
         if (binding.bottomChrome.visibility == View.VISIBLE) {
             binding.bottomChrome.animate().alpha(alpha).setDuration(200).start()
         }

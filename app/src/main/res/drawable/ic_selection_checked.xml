@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Blue filled circle with white checkmark — shown on selected cells -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="22dp"
+    android:height="22dp"
+    android:viewportWidth="22"
+    android:viewportHeight="22">
+    <!-- Blue circle fill -->
+    <path
+        android:fillColor="#FF007AFF"
+        android:pathData="M1,11 A10,10 0 0,1 21,11 A10,10 0 0,1 1,11 Z" />
+    <!-- White checkmark -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M5,11.5 L9.5,16 L17.5,7" />
+</vector>

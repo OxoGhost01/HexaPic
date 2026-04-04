@@ -214,6 +214,12 @@ class MainActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
+    // ── Called by LibraryFragment when entering / exiting selection mode ─────
+
+    fun setBottomNavVisible(visible: Boolean) {
+        binding.bottomNav.visibility = if (visible) View.VISIBLE else View.GONE
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
 
     override fun onSaveInstanceState(outState: Bundle) {
